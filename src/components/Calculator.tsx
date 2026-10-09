@@ -97,6 +97,7 @@ export function CalculatorView({
     draft.asOf !== (stock.asOf || '');
   const build = () =>
     createManualStock({
+      ...stock,
       ticker: stock.ticker,
       name: stock.name,
       sector: stock.sector,
@@ -149,7 +150,7 @@ export function CalculatorView({
     .slice(0, 8);
   return (
     <>
-      <PageTitle title="Fair value calculator">
+      <PageTitle title="Historical P/E comparison">
         Compare a share price with a model based on earnings and historical P/E.
       </PageTitle>
       <section className="stock-selection">
@@ -186,7 +187,7 @@ export function CalculatorView({
                 >
                   <strong>{s.ticker}</strong>
                   <span>{s.name}</span>
-                  <small>{s.sourceKind === 'manual' ? 'Your model' : 'Example'}</small>
+                  <small>{s.sourceKind === 'manual' ? 'Your model' : 'Repository'}</small>
                 </button>
               ))}
               {remote.map((s) => (
@@ -205,7 +206,7 @@ export function CalculatorView({
           )}
         </div>
       </section>
-      <div className="quick-stocks" aria-label="Example stock shortcuts">
+      <div className="quick-stocks" aria-label="Repository stock shortcuts">
         {stocks.slice(0, 8).map((s) => (
           <button
             aria-pressed={s.ticker === stock.ticker}

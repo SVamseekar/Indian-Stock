@@ -1,7 +1,7 @@
 import { StockData } from '../types/stock';
 
-// Unverified legacy example data. No source dates or corporate-action guarantees.
-// API and UI consumers must label this dataset as demo; it is not a live fundamentals feed.
+// Supplied repository snapshot, retained unchanged. Source dates were not documented.
+// Identify these records as repository data, without claiming current filing verification.
 export const DEFAULT_STOCKS: StockData[] = [
   // --- INFORMATION TECHNOLOGY ---
   {

@@ -3,9 +3,65 @@ export function PeasExplainerView() {
   return (
     <>
       <PageTitle title="How the valuation works">
-        A transparent historical P/E model, with the assumptions and limits shown.
+        Choose between the video’s demonstrated two-component calculation and a separate historical
+        P/E comparison.
       </PageTitle>
       <article className="guide">
+        <section>
+          <h2>The video’s demonstrated EMP arithmetic</h2>
+          <p>
+            Start with a supplied profit-insensitive baseline B and an earlier matched price/EPS
+            reference. Earnings sensitivity is (reference price − B) ÷ reference TTM EPS.
+          </p>
+          <div className="formula">
+            EMP = B + updated TTM EPS × earnings sensitivity
+            <br />
+            EMP Low / High = EMP ± k × previous-quarter price standard deviation
+          </div>
+          <p>
+            The 11:07 slide uses reference price ₹200, reference EPS ₹10 and baseline ₹120.
+            Sensitivity is 8, so updated EPS ₹15 produces EMP ₹240. At13:30 the slide uses k=3 and
+            price deviation ₹10 to produce ₹210 and ₹270.
+          </p>
+          <p>
+            The baseline remains a required input; the public material does not disclose the
+            proprietary method for deriving it for a company. Price deviation is measured in rupees
+            and must not be replaced by P/E dispersion. If you calculate deviation from your own
+            quarter prices, choose and record the sample or population denominator.
+          </p>
+          <a
+            href="https://www.youtube.com/watch?v=CboJkEiyR08&t=667"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View the worked video example
+          </a>
+        </section>
+        <section>
+          <h2>What Vivekam’s public product pages establish</h2>
+          <p>
+            Snapshot provides company information; Stock Forecaster shows expected, high and low
+            values for a forward quarter; Top Ranks combines growth and scope to grow. Portfolio
+            services reassess holdings using TTM results. The live tools require account access.
+          </p>
+          <p>
+            These product descriptions do not publish a regression formula or promise one universal
+            coverage percentage. The video’s displayed96.26% is a reported historical result; it is
+            not an accuracy statistic for this workspace.
+          </p>
+          <a href="https://www.vivekam.co.in/stock-services/" target="_blank" rel="noreferrer">
+            Vivekam stock services
+          </a>
+          <p>
+            <a
+              href="https://www.vivekam.co.in/wp-content/uploads/2025/04/20VivekamPMSDraftDisclosure.pdf"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Vivekam’s2025 PMS disclosure
+            </a>
+          </p>
+        </section>
         <section>
           <h2>Start with earnings, then choose a multiple</h2>
           <p>

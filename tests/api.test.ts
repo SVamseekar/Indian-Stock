@@ -44,11 +44,11 @@ test('unknown stocks return quote-only records with no invented earnings or hist
     assert.equal(data.fundamentalStatus, 'unavailable');
     assert.equal(data.quote.cmp, 100);
   }));
-test('all bundled stocks remain explicitly labelled demo data on API responses', () =>
+test('all bundled stocks remain explicitly labelled repository snapshots on API responses', () =>
   withApi(async (base) => {
     const data = await (await fetch(`${base}/api/stocks`)).json();
     assert.ok(data.stocks.length > 0);
-    assert.ok(data.stocks.every((s: { sourceKind: string }) => s.sourceKind === 'demo'));
+    assert.ok(data.stocks.every((s: { sourceKind: string }) => s.sourceKind === 'repository'));
     assert.ok(Math.abs(data.stocks[0].valuation.empLow - 2972.976) < 1e-8);
   }));
 test('BSE symbols do not silently inherit NSE demo fundamentals', () =>

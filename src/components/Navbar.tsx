@@ -9,9 +9,19 @@ import {
   ChartCandlestick,
 } from 'lucide-react';
 export type TabType =
-  'calculator' | 'chart' | 'screener_parser' | 'raw_modeler' | 'top_ranks' | 'portfolio' | 'guide';
+  | 'video_model'
+  | 'data'
+  | 'calculator'
+  | 'chart'
+  | 'screener_parser'
+  | 'raw_modeler'
+  | 'top_ranks'
+  | 'portfolio'
+  | 'guide';
 const tabs = [
-  ['calculator', 'Fair value', Calculator],
+  ['video_model', 'Video EMP', Calculator],
+  ['data', 'Full stock data', BookOpen],
+  ['calculator', 'P/E comparison', Calculator],
   ['chart', 'Price & scenarios', ChartNoAxesCombined],
   ['screener_parser', 'Import financials', FileInput],
   ['raw_modeler', 'Build from earnings', Sigma],
@@ -29,7 +39,7 @@ export function Navbar({
 }) {
   return (
     <aside className="sidebar">
-      <a className="brand" href="#calculator" onClick={() => setActiveTab('calculator')}>
+      <a className="brand" href="#video_model" onClick={() => setActiveTab('video_model')}>
         <span className="brand-mark">
           <ChartCandlestick size={24} />
         </span>

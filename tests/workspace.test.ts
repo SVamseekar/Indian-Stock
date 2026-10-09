@@ -58,3 +58,17 @@ test('NSE aliases update one model identity while keeping BSE distinct', () => {
   assert.equal(p.currentValue, 1000);
   assert.equal(createManualStock({ ...s, ticker: 'TCS.BO' }).ticker, 'TCS.BO');
 });
+test('editing a repository stock retains full financial details and stored history', () => {
+  const source = DEFAULT_STOCKS[0];
+  const saved = createManualStock({ ...source, cmp: 4000 });
+  assert.equal(saved.roce, 58.2);
+  assert.equal(saved.peMean5Y, 30.5);
+  assert.equal(saved.debtToEquity, 0.05);
+  assert.deepEqual(saved.historicalQuarters, source.historicalQuarters);
+  assert.equal(saved.historicalQuarters[8].empLow, 3392);
+});
+test('missing optional financial ratios are unknown, not invented zeros', () => {
+  const s = createManualStock({ cmp: 100, ttmEps: 5, peMean3Y: 20, peStdDev: 3 });
+  assert.equal(s.roce, null);
+  assert.equal(s.peMean5Y, null);
+});

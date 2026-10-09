@@ -1,6 +1,6 @@
 # Indian Stock — Fair Value Workspace
 
-A React/TypeScript workspace for understanding Indian equity prices through a **historical mean P/E scenario model**. It includes reviewed financial text imports, an earnings builder, valuation scenarios, stock comparisons and a browser-local portfolio.
+A React/TypeScript workspace for understanding Indian equity prices through the **video’s demonstrated two-component EMP calculation** and a separate **historical mean P/E comparison**. It includes reviewed financial text imports, an earnings builder, valuation scenarios, stock comparisons and a browser-local portfolio.
 
 ## Run
 
@@ -22,7 +22,24 @@ NODE_ENV=production HOST=0.0.0.0 npm start
 
 Set `PORT` for your hosting platform. Keep this server running: deploying only `dist/` does not provide quote/search endpoints. `npm run preview` is a static UI preview only. Source and development tools must remain installed for `npm start`, which uses the TypeScript loader.
 
-## Model and limits
+## Video EMP mode
+
+The public video slides were inspected directly. At11:07, the example uses reference price200, reference EPS10 and supplied baseline120. Earnings sensitivity is `(200 −120)/10=8`; new TTM EPS15 produces `120+15×8=240`. At13:30, previous-quarter price deviation10 and multiplier3 produce low210 and high270.
+
+The new default Video EMP tab reproduces this arithmetic:
+
+- Earnings sensitivity = (reference price − supplied baseline) / reference TTM EPS.
+- EMP = supplied baseline + updated TTM EPS × earnings sensitivity.
+- Low/High = EMP ± multiplier × previous-quarter **price** standard deviation in rupees. Negative lower bands are explicitly clamped to zero.
+- The baseline and price deviation are never derived from historical mean P/E or P/E dispersion. Missing parameters block video valuation rather than silently substituting another model.
+- Updated EPS may be zero or negative if the final EMP remains positive. The reference EPS must be positive for the demonstrated sensitivity calculation.
+- Optional quarter-price input computes deviation using an explicitly selected sample or population denominator. The video does not specify that convention.
+- “Load video example” is a separate tutorial. It cannot overwrite the selected company’s financial record.
+- Saved per-stock parameters persist locally. Comparisons, hypothetical EPS scenarios and portfolio model values use the selected valuation method. Existing saved prices continue to determine position values.
+
+Vivekam’s [stock services](https://www.vivekam.co.in/stock-services/) describe Snapshot, Stock Forecaster and growth/scope-based rankings; its [portfolio services](https://www.vivekam.co.in/portfolio-services/) describe ongoing TTM-based assessment. Its [2025 PMS disclosure](https://www.vivekam.co.in/wp-content/uploads/2025/04/20VivekamPMSDraftDisclosure.pdf), pages9–10, describes a business-value/profit-sensitive split and current versus previous TTM results. These sources do not disclose the baseline algorithm or establish Gemini’s suggested regression recipe as Vivekam’s implementation. The live dashboard requires account access.
+
+## Historical P/E comparison and limits
 
 - Central value = positive TTM EPS × positive historical **arithmetic mean** P/E.
 - Lower band = EPS × max(0, mean P/E − k × sample standard deviation).
@@ -34,11 +51,11 @@ Set `PORT` for your hosting platform. Keep this server running: deploying only `
 - Classification describes price position relative to the model. It does not issue automatic buy/sell recommendations.
 - Future EPS scenarios compound annual growth without intermediate rounding. They do not forecast market prices.
 
-The [reference video](https://www.youtube.com/watch?v=CboJkEiyR08) discusses a proprietary EMP method with profit-sensitive and profit-insensitive components. This app cannot reproduce undisclosed coefficients or claim equivalence. It implements the independently reproducible P/E model already present in the repository.
+The [reference video](https://www.youtube.com/watch?v=CboJkEiyR08) discusses a proprietary EMP method with profit-sensitive and profit-insensitive components. This app cannot reproduce undisclosed coefficients or claim equivalence. The app reproduces the demonstrated arithmetic with supplied parameters and also retains the independently reproducible P/E comparison. It does not claim to derive Vivekam’s proprietary baseline or inherit its reported hit rates.
 
 ## Data workflow
 
-1. Choose a clearly labelled **example**, or import your own sourced financial inputs.
+1. Choose the **supplied repository snapshot**, or import your own sourced financial inputs.
 2. Review the market price, reported TTM EPS, historical mean P/E, and dispersion. Record a source link and financial period when available.
 3. For raw quarterly profit, use four consecutive quarters of attributable earnings with a consistent weighted-average share denominator and split/bonus adjustments. If shares changed, use comparable reported EPS instead of dividing by current shares.
 4. Save your model. Comparisons, charts and portfolio all use those saved inputs.
@@ -46,7 +63,7 @@ The [reference video](https://www.youtube.com/watch?v=CboJkEiyR08) discusses a p
 
 ### Data provenance
 
-`src/data/defaultStocks.ts` contains **unverified legacy examples**. Prices, fundamentals and historical observations have no verifiable source dates and must not be treated as a current financial feed. API and UI consumers label them as demo data. Historical bands are recomputed with the shared engine rather than trusting old stored band values; retrospective calculations are not a point-in-time backtest.
+`src/data/defaultStocks.ts` contains the **supplied repository snapshot:32 stocks and288 quarterly observations**, retained without changing numeric values. Prices, fundamentals and historical observations have no verifiable source dates and must not be treated as a current financial feed. API and UI consumers identify these as repository data. Full stock data displays every financial metric and the original stored EMP, low and high values. Recomputed P/E comparisons are separate; retrospective calculations are not a point-in-time backtest. Editing a record preserves its financial metrics/history, and the original snapshot remains independently accessible. Unknown custom metrics are null rather than fabricated zeros.
 
 Imported records are user inputs, not automatically verified financial facts. Missing core inputs block valuation; missing history remains empty. Source links record provenance without asserting that the app verified the filing.
 
@@ -66,13 +83,13 @@ Automatic financial statement ingestion is **not configured**. A production fund
 
 ## API
 
-| Route                                           | Purpose                                                                                                  |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `GET /api/health`                               | Server health and configured feed types                                                                  |
-| `GET /api/stocks`                               | Labelled demo records and valuations from the shared engine                                              |
-| `GET /api/stocks/:symbol`                       | Optional provider quote plus demo fundamentals only when available; unknown symbols return `stock: null` |
-| `GET /api/live-quotes?tickers=TCS.NS,500112.BO` | Per-symbol quote availability, provenance and timestamps                                                 |
-| `GET /api/search-tickers?q=tata`                | Indian exchange search, with local-example fallback clearly identified                                   |
+| Route                                           | Purpose                                                                                                        |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                               | Server health and configured feed types                                                                        |
+| `GET /api/stocks`                               | Labelled repository records and valuations from the shared engine                                              |
+| `GET /api/stocks/:symbol`                       | Optional provider quote plus repository fundamentals only when available; unknown symbols return `stock: null` |
+| `GET /api/live-quotes?tickers=TCS.NS,500112.BO` | Per-symbol quote availability, provenance and timestamps                                                       |
+| `GET /api/search-tickers?q=tata`                | Indian exchange search, with local-example fallback clearly identified                                         |
 
 Unknown `/api` routes return JSON 404 responses. Invalid query types, symbols and oversized batches return HTTP 400.
 

@@ -6,7 +6,32 @@ export function createManualStock(data: Partial<StockData>): StockData {
   const { cmp, ttmEps, peMean3Y, peStdDev } = data;
   if ([cmp, ttmEps, peMean3Y, peStdDev].some((v) => typeof v !== 'number'))
     throw new Error('Provide market price, TTM EPS, mean P/E and P/E standard deviation.');
-  calculateEmpBands(cmp!, ttmEps!, peMean3Y!, peStdDev!);
+  if (!Number.isFinite(cmp) || cmp! <= 0 || !Number.isFinite(ttmEps))
+    throw new Error('Market price must be positive and EPS must be finite.');
+  calculateEmpBands(cmp!, 1, peMean3Y!, peStdDev!);
+  const optionalNumber = (value: number | null | undefined) =>
+    value == null
+      ? null
+      : Number.isFinite(value)
+        ? value
+        : (() => {
+            throw new Error('Optional financial metrics must be finite.');
+          })();
+  const history = data.historicalQuarters ?? [];
+  if (
+    !Array.isArray(history) ||
+    !history.every(
+      (h) =>
+        typeof h.quarter === 'string' &&
+        Number.isFinite(h.ttmEps) &&
+        Number.isFinite(h.cmp) &&
+        h.cmp > 0 &&
+        [h.emp, h.empLow, h.empHigh].every((v) => v === undefined || Number.isFinite(v)),
+    )
+  )
+    throw new Error(
+      'Historical observations must contain valid prices, earnings and stored bands.',
+    );
   if (data.sourceUrl && !/^https?:\/\//i.test(data.sourceUrl))
     throw new Error('Source link must begin with https:// or http://.');
   if (
@@ -26,16 +51,16 @@ export function createManualStock(data: Partial<StockData>): StockData {
     cmp: cmp!,
     ttmEps: ttmEps!,
     peMean3Y: peMean3Y!,
-    peMean5Y: peMean3Y!,
+    peMean5Y: optionalNumber(data.peMean5Y),
     peStdDev: peStdDev!,
-    peMin: 0,
-    peMax: 0,
-    roce: 0,
-    roe: 0,
-    salesGrowth3Y: 0,
-    profitGrowth3Y: 0,
-    debtToEquity: 0,
-    historicalQuarters: [],
+    peMin: optionalNumber(data.peMin),
+    peMax: optionalNumber(data.peMax),
+    roce: optionalNumber(data.roce),
+    roe: optionalNumber(data.roe),
+    salesGrowth3Y: optionalNumber(data.salesGrowth3Y),
+    profitGrowth3Y: optionalNumber(data.profitGrowth3Y),
+    debtToEquity: optionalNumber(data.debtToEquity),
+    historicalQuarters: history.map((h) => ({ ...h })),
     sourceKind: 'manual',
     sourceUrl: data.sourceUrl,
     asOf: data.asOf,

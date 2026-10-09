@@ -12,9 +12,18 @@ import { RawDataCalculatorView } from './components/RawDataCalculator';
 import { TopRanksView } from './components/TopRanks';
 import { PortfolioScannerView } from './components/PortfolioScanner';
 import { PeasExplainerView } from './components/PeasExplainer';
+import { VideoCalculatorView } from './components/VideoCalculator';
+import { StockDataView } from './components/StockDataView';
+import {
+  readVideoModels,
+  type ModelMethod,
+  type VideoEmpParameters,
+} from './utils/videoEmpCalculator';
 import { Notice, SourceNote } from './components/shared';
 
 const pages: TabType[] = [
+  'video_model',
+  'data',
   'calculator',
   'chart',
   'screener_parser',
@@ -26,16 +35,20 @@ const pages: TabType[] = [
 const initialPage = () =>
   pages.includes(location.hash.slice(1) as TabType)
     ? (location.hash.slice(1) as TabType)
-    : 'calculator';
+    : 'video_model';
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>(initialPage);
+  const [method, setMethod] = useState<ModelMethod>(() =>
+    initialPage() === 'calculator' ? 'pe' : 'video',
+  );
+  const [videoModels, setVideoModels] = useState(readVideoModels);
   const [stocks, setStocks] = useState<StockData[]>(() => {
     const manual = readManualStocks();
     return [
       ...manual,
       ...DEFAULT_STOCKS.filter((s) => !manual.some((m) => m.ticker === s.ticker)).map((s) => ({
         ...s,
-        sourceKind: 'demo' as const,
+        sourceKind: 'repository' as const,
       })),
     ];
   });
@@ -57,10 +70,17 @@ export default function App() {
   const inFlight = useRef<AbortController | null>(null);
   const navigate = useCallback((tab: TabType) => {
     setActiveTab(tab);
+    if (tab === 'calculator') setMethod('pe');
+    if (tab === 'video_model') setMethod('video');
     location.hash = tab;
   }, []);
   useEffect(() => {
-    const onHash = () => setActiveTab(initialPage());
+    const onHash = () => {
+      const tab = initialPage();
+      setActiveTab(tab);
+      if (tab === 'calculator') setMethod('pe');
+      if (tab === 'video_model') setMethod('video');
+    };
     addEventListener('hashchange', onHash);
     return () => removeEventListener('hashchange', onHash);
   }, []);
@@ -74,6 +94,15 @@ export default function App() {
       setStorageError('Browser storage is unavailable. Export your model to keep a copy.');
     }
   }, [stocks]);
+  useEffect(() => {
+    try {
+      localStorage.setItem('indian-stock-video-models-v1', JSON.stringify(videoModels));
+    } catch {
+      setStorageError(
+        'Browser storage is unavailable. Model changes will last only in this session.',
+      );
+    }
+  }, [videoModels]);
   const refresh = useCallback(async () => {
     if (inFlight.current) return;
     const batches = quoteBatches(stocksRef.current);
@@ -176,10 +205,15 @@ export default function App() {
     setSelectedTicker(stock.ticker);
   };
   const removeModel = (ticker: string) => {
+    setVideoModels((previous) => {
+      const next = { ...previous };
+      delete next[ticker];
+      return next;
+    });
     const original = DEFAULT_STOCKS.find((s) => s.ticker === ticker);
     setStocks((prev) => [
       ...prev.filter((s) => s.ticker !== ticker),
-      ...(original ? [{ ...original, sourceKind: 'demo' as const }] : []),
+      ...(original ? [{ ...original, sourceKind: 'repository' as const }] : []),
     ]);
     setSelectedTicker(original?.ticker || 'TCS');
   };
@@ -187,7 +221,20 @@ export default function App() {
     select(createManualStock(data));
     navigate('calculator');
   };
-  const shared = { stocks, confidenceMultiplier, onSelectStock: select, onNavigateToTab: navigate };
+  const saveVideo = (parameters: VideoEmpParameters, cmp: number, eps: number) => {
+    if (parameters.sourceUrl && !/^https?:\/\//i.test(parameters.sourceUrl))
+      throw new Error('Model source must be an HTTP or HTTPS link.');
+    select(createManualStock({ ...selectedStock, cmp, ttmEps: eps }));
+    setVideoModels((previous) => ({ ...previous, [selectedStock.ticker]: parameters }));
+  };
+  const shared = {
+    stocks,
+    confidenceMultiplier,
+    method,
+    videoModels,
+    onSelectStock: select,
+    onNavigateToTab: navigate,
+  };
   return (
     <div className="app-shell">
       <a href="#main-content" className="skip-link">
@@ -197,7 +244,21 @@ export default function App() {
       <div className="workspace">
         <header className="workspace-header">
           <span>Equity research</span>
-          <span className="header-note">Transparent inputs. Reproducible calculations.</span>
+          <label className="method-picker">
+            Valuation model
+            <select
+              value={method}
+              onChange={(e) => {
+                const choice = e.target.value as ModelMethod;
+                setMethod(choice);
+                if (activeTab === 'calculator' || activeTab === 'video_model')
+                  navigate(choice === 'video' ? 'video_model' : 'calculator');
+              }}
+            >
+              <option value="video">Video: baseline + earnings</option>
+              <option value="pe">Historical P/E comparison</option>
+            </select>
+          </label>
         </header>
         <PipelineBanner
           feed={feed}
@@ -206,6 +267,18 @@ export default function App() {
         />
         <main id="main-content" tabIndex={-1}>
           {storageError && <Notice>{storageError}</Notice>}
+          {activeTab === 'video_model' && (
+            <VideoCalculatorView
+              stocks={stocks}
+              selectedStock={selectedStock}
+              parameters={videoModels[selectedStock.ticker]}
+              onSelectStock={select}
+              onSave={saveVideo}
+            />
+          )}
+          {activeTab === 'data' && (
+            <StockDataView stocks={stocks} selectedStock={selectedStock} onSelectStock={select} />
+          )}
           {activeTab === 'calculator' && (
             <CalculatorView
               {...shared}
@@ -235,7 +308,12 @@ export default function App() {
                 </select>
               </label>
               <SourceNote stock={selectedStock} />
-              <PeasChart stock={selectedStock} confidenceMultiplier={confidenceMultiplier} />
+              <PeasChart
+                stock={selectedStock}
+                confidenceMultiplier={confidenceMultiplier}
+                method={method}
+                parameters={videoModels[selectedStock.ticker]}
+              />
             </>
           )}
           {activeTab === 'screener_parser' && (
@@ -251,8 +329,8 @@ export default function App() {
           {activeTab === 'guide' && <PeasExplainerView />}
         </main>
         <footer>
-          P/E values are model estimates. Check source filings, financial periods and corporate
-          actions before relying on them.
+          Valuation outputs depend on the selected model and supplied inputs. Check source filings,
+          financial periods and corporate actions before relying on them.
           <a href="#guide" onClick={() => navigate('guide')}>
             Read the methodology
           </a>

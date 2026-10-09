@@ -66,14 +66,20 @@ export function SourceNote({ stock }: { stock: StockData }) {
   return (
     <div className="source-note">
       <span className={`badge ${stock.sourceKind === 'manual' ? 'blue' : 'amber'}`}>
-        {stock.sourceKind === 'manual' ? 'User inputs' : 'Example data'}
+        {stock.sourceKind === 'manual'
+          ? 'User inputs'
+          : stock.sourceKind === 'repository'
+            ? 'Repository snapshot'
+            : 'Example data'}
       </span>
       <span>
         {stock.sourceKind === 'manual'
           ? stock.asOf
             ? `Financial period: ${stock.asOf}`
             : 'Financial period not supplied'
-          : 'Unverified bundled values; for learning the model'}
+          : stock.sourceKind === 'repository'
+            ? 'Supplied repository data; source dates not independently verified'
+            : 'Illustrative example values'}
       </span>
       {stock.sourceUrl && (
         <a href={stock.sourceUrl} target="_blank" rel="noreferrer">

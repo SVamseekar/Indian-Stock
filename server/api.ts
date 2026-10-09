@@ -4,7 +4,10 @@ import { DEFAULT_STOCKS } from '../src/data/defaultStocks.ts';
 import { calculateEmpBands } from '../src/utils/empCalculator.ts';
 import { createQuoteService, normalizeSymbol } from './quotes.ts';
 
-export const demoStocks: StockData[] = DEFAULT_STOCKS.map((s) => ({ ...s, sourceKind: 'demo' }));
+export const repositoryStocks: StockData[] = DEFAULT_STOCKS.map((s) => ({
+  ...s,
+  sourceKind: 'repository',
+}));
 export function createApiApp({
   quotes = createQuoteService(),
   fetcher = fetch,
@@ -21,19 +24,19 @@ export function createApiApp({
     res.json({
       success: true,
       service: 'Indian Stock',
-      fundamentalFeed: 'manual-and-demo',
+      fundamentalFeed: 'manual-and-repository',
       quoteProvider: 'Yahoo Finance',
     }),
   );
   app.get('/api/stocks', (_req, res) =>
     res.json({
       success: true,
-      stocks: demoStocks.map((stock) => ({
+      stocks: repositoryStocks.map((stock) => ({
         ...stock,
         valuation: calculateEmpBands(stock.cmp, stock.ttmEps, stock.peMean3Y, stock.peStdDev),
       })),
-      count: demoStocks.length,
-      sourceKind: 'demo',
+      count: repositoryStocks.length,
+      sourceKind: 'repository',
     }),
   );
   app.get('/api/live-quotes', async (req, res) => {
@@ -110,14 +113,14 @@ export function createApiApp({
         .json({ success: false, error: 'Search query must be at most 80 characters.' });
     const q = req.query.q.trim();
     if (!q) return res.json({ success: true, results: [] });
-    const local = demoStocks
+    const local = repositoryStocks
       .filter((s) => `${s.ticker} ${s.name}`.toLowerCase().includes(q.toLowerCase()))
       .map((s) => ({
         symbol: `${s.ticker}.NS`,
         ticker: s.ticker,
         name: s.name,
         exchange: 'NSE',
-        fundamentalStatus: 'demo',
+        fundamentalStatus: 'repository',
       }));
     try {
       const response = await fetcher(
@@ -156,16 +159,16 @@ export function createApiApp({
       return res.status(400).json({ success: false, error: (e as Error).message });
     }
     const stock = symbol.endsWith('.NS')
-      ? (demoStocks.find((s) => `${s.ticker}.NS` === symbol) ?? null)
+      ? (repositoryStocks.find((s) => `${s.ticker}.NS` === symbol) ?? null)
       : null;
     const quote = await quotes.get(symbol);
     return res.json({
       success: true,
       stock,
       quote,
-      fundamentalStatus: stock ? 'demo' : 'unavailable',
+      fundamentalStatus: stock ? 'repository' : 'unavailable',
       message: stock
-        ? 'Bundled fundamentals are unverified examples.'
+        ? 'Bundled fundamentals are the supplied repository snapshot; source dates were not independently verified.'
         : 'No fundamentals available. Enter sourced EPS and historical P/E observations to calculate a value.',
     });
   });

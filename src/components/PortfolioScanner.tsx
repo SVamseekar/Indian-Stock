@@ -1,20 +1,28 @@
 import { useState, useEffect } from 'react';
 import type { PortfolioHolding, StockData } from '../types/stock';
 import { summarizePortfolio, readPortfolioHoldings } from '../utils/workspace';
-import { tryCalculateEmpBands } from '../utils/empCalculator';
+import {
+  stockValuation,
+  type ModelMethod,
+  type VideoEmpParameters,
+} from '../utils/videoEmpCalculator';
 import { Field, Notice, PageTitle, money, pct } from './shared';
 export function PortfolioScannerView({
   stocks,
   confidenceMultiplier,
+  method,
+  videoModels,
   selectedTicker,
   onSelectStock,
   onNavigateToTab,
 }: {
   stocks: StockData[];
   confidenceMultiplier: number;
+  method: ModelMethod;
+  videoModels: Record<string, VideoEmpParameters>;
   selectedTicker?: string;
   onSelectStock: (s: StockData) => void;
-  onNavigateToTab: (tab: 'calculator' | 'chart') => void;
+  onNavigateToTab: (tab: 'calculator' | 'chart' | 'video_model') => void;
 }) {
   const [holdings, setHoldings] = useState(readPortfolioHoldings);
   const [ticker, setTicker] = useState(selectedTicker || stocks[0].ticker);
@@ -57,8 +65,8 @@ export function PortfolioScannerView({
         Track holdings against the prices and valuation assumptions in your saved models.
       </PageTitle>
       <Notice>
-        Portfolio values use saved model prices. To update one, use a provider quote in the
-        calculator and save. Holdings stay in this browser.
+        Portfolio values use saved prices; valuation uses the model selected above. To update one,
+        use a provider quote in the calculator and save. Holdings stay in this browser.
       </Notice>
       <div className="portfolio-summary">
         <div>
@@ -133,25 +141,24 @@ export function PortfolioScannerView({
                 <th>Saved price</th>
                 <th>Position value</th>
                 <th>Gain / loss</th>
-                <th>Model value / share</th>
+                <th>{method === 'video' ? 'Video EMP / share' : 'P/E model / share'}</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {totals.rows.map((h) => {
-                const { result: r } = tryCalculateEmpBands(
-                  h.stock.cmp,
-                  h.stock.ttmEps,
-                  h.stock.peMean3Y,
-                  h.stock.peStdDev,
+                const { result: r } = stockValuation(
+                  h.stock,
+                  method,
                   confidenceMultiplier,
+                  videoModels,
                 );
                 return (
                   <tr key={h.id}>
                     <th scope="row">
                       <span>{h.ticker}</span>
                       <small>
-                        {h.stock.sourceKind === 'manual' ? 'User inputs' : 'Example inputs'}
+                        {h.stock.sourceKind === 'manual' ? 'User inputs' : 'Repository snapshot'}
                       </small>
                     </th>
                     <td>{h.quantity}</td>
@@ -159,7 +166,7 @@ export function PortfolioScannerView({
                     <td>{money(h.stock.cmp)}</td>
                     <td>{money(h.currentValue)}</td>
                     <td className={h.pnl >= 0 ? 'positive' : 'negative'}>{money(h.pnl)}</td>
-                    <td>{money(r?.emp)}</td>
+                    <td>{r ? money(r.emp) : 'Inputs required'}</td>
                     <td>
                       <div className="row-actions">
                         <button
@@ -167,7 +174,7 @@ export function PortfolioScannerView({
                           aria-label={`Review ${h.ticker}`}
                           onClick={() => {
                             onSelectStock(h.stock);
-                            onNavigateToTab('calculator');
+                            onNavigateToTab(method === 'video' ? 'video_model' : 'calculator');
                           }}
                         >
                           Review
