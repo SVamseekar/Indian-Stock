@@ -2,92 +2,80 @@ export interface HistoricalQuarter {
   quarter: string;
   ttmEps: number;
   cmp: number;
-  emp: number;
-  empHigh: number;
-  empLow: number;
+  emp?: number;
+  empHigh?: number;
+  empLow?: number;
 }
-
 export interface StockData {
   ticker: string;
   name: string;
   sector: string;
   cmp: number;
-  previousClose?: number;
-  dayHigh?: number;
-  dayLow?: number;
-  change?: number;
-  changePercent?: number;
-  isLiveUpdated?: boolean;
-  priceDirection?: 'up' | 'down' | 'neutral';
   ttmEps: number;
   peMean3Y: number;
-  peMean5Y: number;
+  peMean5Y: number | null;
   peStdDev: number;
-  peMin: number;
-  peMax: number;
-  roce: number;
-  roe: number;
-  salesGrowth3Y: number;
-  profitGrowth3Y: number;
-  debtToEquity: number;
+  peMin: number | null;
+  peMax: number | null;
+  roce: number | null;
+  roe: number | null;
+  salesGrowth3Y: number | null;
+  profitGrowth3Y: number | null;
+  debtToEquity: number | null;
   historicalQuarters: HistoricalQuarter[];
+  sourceKind?: 'demo' | 'manual' | 'repository';
+  sourceUrl?: string;
+  asOf?: string;
+  quote?: MarketQuote;
 }
-
-export type ValuationStatus = 
-  | 'DEEPLY_UNDERPRICED' 
-  | 'UNDERPRICED' 
-  | 'FAIR_VALUE' 
-  | 'OVERPRICED';
-
+export type ValuationStatus = 'DEEPLY_UNDERPRICED' | 'UNDERPRICED' | 'FAIR_VALUE' | 'OVERPRICED';
 export interface EmpCalculationResult {
   cmp: number;
   ttmEps: number;
   peFair: number;
   peStdDev: number;
-  confidenceMultiplier: number; // k (e.g. 1.0, 1.64, 1.96, 2.5)
-  
-  emp: number; // Central Expected Market Price
-  empHigh: number; // Upper Resistance
-  empLow: number; // Lower Support
-  
+  confidenceMultiplier: number;
+  emp: number;
+  empHigh: number;
+  empLow: number;
+  lowerBandClamped: boolean;
   status: ValuationStatus;
   statusLabel: string;
   statusColor: string;
-  
-  discountToEmp: number; // % ((CMP - EMP) / EMP) * 100
-  discountToEmpLow: number; // % ((CMP - EMP Low) / EMP Low) * 100
-  
-  targetUpsideToEmp: number; // % ((EMP - CMP) / CMP) * 100
-  maxUpsideToEmpHigh: number; // % ((EMP High - CMP) / CMP) * 100
-  downsideRiskToEmpLow: number; // % ((CMP - EMP Low) / CMP) * 100
-  
-  riskRewardRatio: number; // Upside to EMP / Downside to EMP Low
-  marginOfSafetyPercent: number; // Margin of safety if bought at CMP
-  historicalHitRate: number; // Estimated % hit rate (~95.4%)
-  
-  // Advanced Mathematical & Statistical Indicators
-  zScore: number; // (P/E_current - P/E_mean) / sigma
-  currentPe: number; // CMP / TTM EPS
-  peDispersionPercent: number; // (StdDev / Mean) * 100 (Coefficient of Variation)
-  estimatedMeanReversionProbability: number; // Statistical probability of reverting to EMP
+  discountToEmp: number;
+  discountToEmpLow: number | null;
+  targetUpsideToEmp: number;
+  maxUpsideToEmpHigh: number;
+  downsideRiskToEmpLow: number;
+  riskRewardRatio: number | null;
+  marginOfSafetyPercent: number;
+  theoreticalNormalCoverage: number;
+  zScore: number | null;
+  currentPe: number;
+  peDispersionPercent: number;
+  normalPercentile: number | null;
 }
-
+export interface MarketQuote {
+  symbol: string;
+  status: 'available' | 'stale' | 'unavailable';
+  source: 'Yahoo Finance';
+  cmp: number | null;
+  previousClose: number | null;
+  change: number | null;
+  changePercent: number | null;
+  asOf: string | null;
+  fetchedAt: string | null;
+  fromCache: boolean;
+  error?: string;
+}
 export interface PortfolioHolding {
   id: string;
   ticker: string;
-  name: string;
-  sector: string;
   quantity: number;
   avgBuyPrice: number;
-  cmp: number;
-  ttmEps: number;
-  peFair: number;
-  peStdDev: number;
 }
-
 export interface ScreenerParsedData {
   companyName?: string;
-  ticker?: string;
   cmp?: number;
   marketCap?: number;
   ttmEps?: number;
@@ -97,28 +85,8 @@ export interface ScreenerParsedData {
   bookValue?: number;
   roce?: number;
   roe?: number;
-  quarterlyProfits?: number[]; // Net profits in ₹ Cr
-  calculatedTtmProfit?: number; // Sum of last 4 quarters
-  sharesCountCr?: number; // Equity shares in Cr
-  rawTextFound?: string[];
-}
-
-export interface PipelineAlert {
-  id: string;
-  ticker: string;
-  name: string;
-  type: 'BUY_ZONE_ENTERED' | 'SELL_ZONE_ENTERED' | 'FAIR_PRICE_TOUCHED';
-  cmp: number;
-  targetPrice: number;
-  timestamp: string;
-  message: string;
-}
-
-export interface PipelineStatus {
-  isAutoSyncing: boolean;
-  intervalSeconds: number;
-  lastSyncTime: string | null;
-  syncCount: number;
-  isConnected: boolean;
-  monitoredEquitiesCount: number;
+  quarterlyProfits?: number[];
+  calculatedTtmProfit?: number;
+  rawTextFound: string[];
+  warnings: string[];
 }

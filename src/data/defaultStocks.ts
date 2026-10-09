@@ -1,5 +1,7 @@
 import { StockData } from '../types/stock';
 
+// Supplied repository snapshot, retained unchanged. Source dates were not documented.
+// Identify these records as repository data, without claiming current filing verification.
 export const DEFAULT_STOCKS: StockData[] = [
   // --- INFORMATION TECHNOLOGY ---
   {

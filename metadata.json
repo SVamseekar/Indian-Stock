@@ -1,7 +1,6 @@
 {
-  "name": "Quantitative Valuation Corridor & Fair Price Engine",
-  "description": "Historical P/E multiple valuation corridor and equilibrium fair price calculator for Indian equities using free Screener.in and NSE fundamental data.",
+  "name": "Indian Stock Fair Value Workspace",
+  "description": "Transparent historical P/E valuation models, reviewed financial inputs, delayed provider quotes and local portfolio tracking.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
-
