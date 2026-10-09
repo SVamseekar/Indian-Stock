@@ -1,199 +1,134 @@
-import React from 'react';
-import { 
-  BookOpen, 
-  CheckCircle2, 
-  ExternalLink, 
-  ShieldCheck, 
-  TrendingUp, 
-  ArrowRightLeft, 
-  FileSpreadsheet,
-  Binary,
-  Calculator,
-  Sigma,
-  Percent
-} from 'lucide-react';
-
-export const PeasExplainerView: React.FC = () => {
+import { PageTitle } from './shared';
+export function PeasExplainerView() {
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-mono border border-emerald-500/30">
-            Valuation Architecture &amp; Mathematical Proofs
-          </span>
-          <span className="text-xs text-slate-400 font-mono">
-            Deterministic Formulaic Engine
-          </span>
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 mt-2">
-          Mathematical Formulation of Historical P/E Valuation Corridors
-        </h1>
-        <p className="text-sm sm:text-base text-slate-300 mt-2 max-w-3xl leading-relaxed">
-          How to mathematically calculate <strong>Equilibrium Fair Value (P* Equilibrium Price)</strong> and the <strong>95% Confidence P/E Multiple Valuation Corridor</strong> (&plusmn;1.96&sigma;) using 100% free public data from Screener.in and official NSE disclosures.
-        </p>
-      </div>
-
-      {/* The 4 Mathematical Steps */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Step 1: TTM EPS */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold font-mono flex items-center justify-center text-sm">
-              01
-            </span>
-            <span className="text-xs font-mono text-emerald-400">Step 1: Earnings Power</span>
-          </div>
-          <h3 className="text-lg font-bold text-slate-100">Trailing Twelve Months EPS (TTM EPS)</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Earnings power is the quarterly sum of net profits after taxes over the preceding 4 continuous reporting periods divided by diluted equity share capital:
+    <>
+      <PageTitle title="How the valuation works">
+        A transparent historical P/E model, with the assumptions and limits shown.
+      </PageTitle>
+      <article className="guide">
+        <section>
+          <h2>Start with earnings, then choose a multiple</h2>
+          <p>
+            TTM EPS is earnings per share over the latest four consecutive quarters. A historical
+            mean P/E describes what investors have paid for those earnings over a chosen period.
           </p>
-          <div className="p-3 bg-slate-950 rounded-xl font-mono text-xs text-emerald-300 border border-slate-800">
-            TTM EPS = (Q₁ + Q₂ + Q₃ + Q₄ Net Profit) &divide; Total Diluted Shares
-          </div>
-          <p className="text-[11px] text-slate-400">
-            • Free source: Screener.in &gt; Profit &amp; Loss table &gt; EPS (TTM).
+          <div className="formula">Model value per share = TTM EPS × historical mean P/E</div>
+          <p>
+            For example, EPS of ₹5 and mean P/E of 20 produce a model value of ₹100. That value
+            changes if earnings, the historical period or the multiple changes.
           </p>
-        </div>
-
-        {/* Step 2: Historical Multiples */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 font-bold font-mono flex items-center justify-center text-sm">
-              02
-            </span>
-            <span className="text-xs font-mono text-amber-400">Step 2: Fair Multiple (&mu;)</span>
-          </div>
-          <h3 className="text-lg font-bold text-slate-100">Historical Median P/E Multiple</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Market perception mean-reverts over 3-year and 5-year business cycles. The fair multiple is the sample median or arithmetic mean:
+        </section>
+        <section>
+          <h2>Understand the lower and upper bands</h2>
+          <p>
+            The sample standard deviation measures variation in the same historical P/E observations
+            used for the mean.
           </p>
-          <div className="p-3 bg-slate-950 rounded-xl font-mono text-xs text-amber-300 border border-slate-800">
-            &mu; = (1 / N) &sum; PEᵢ &nbsp;&nbsp;|&nbsp;&nbsp; Central EMP = TTM EPS &times; &mu;
+          <div className="formula">
+            Lower = EPS × max(0, mean P/E − k × sample deviation)
+            <br />
+            Upper = EPS × (mean P/E + k × sample deviation)
           </div>
-          <p className="text-[11px] text-slate-400">
-            • Central EMP represents the gravity center of equity valuation.
+          <p>
+            At EPS ₹5, mean P/E 20, deviation 3 and k = 1.96, the range is ₹70.60 to ₹129.40. It is
+            a model range, not guaranteed support or resistance.
           </p>
-        </div>
-
-        {/* Step 3: Valuation Volatility */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 font-bold font-mono flex items-center justify-center text-sm">
-              03
-            </span>
-            <span className="text-xs font-mono text-indigo-400">Step 3: Dispersion (&sigma;)</span>
-          </div>
-          <h3 className="text-lg font-bold text-slate-100">P/E Sample Standard Deviation (&sigma;)</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Evaluates the amplitude of sentiment swings using Bessel-corrected variance:
+          <p>
+            A normal distribution places about 95% of its observations within ±1.96 standard
+            deviations. This assumption does not establish a 95% probability of a stock recovering,
+            and it is not a confidence interval for an estimated mean or a measured backtest hit
+            rate.
           </p>
-          <div className="p-3 bg-slate-950 rounded-xl font-mono text-xs text-indigo-300 border border-slate-800">
-            &sigma; = &radic; [ &sum; (PEᵢ - &mu;)&sup2; &divide; (N - 1) ]
-          </div>
-          <p className="text-[11px] text-slate-400">
-            • High &sigma; indicates cyclical sentiment swings (e.g., Auto, Metals). Low &sigma; indicates defensive consistency (e.g., FMCG, IT).
+          <a
+            href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda3671.htm"
+            target="_blank"
+            rel="noreferrer"
+          >
+            NIST: standard normal distribution
+          </a>
+        </section>
+        <section>
+          <h2>What about the method in the video?</h2>
+          <p>
+            The{' '}
+            <a href="https://www.youtube.com/watch?v=CboJkEiyR08" target="_blank" rel="noreferrer">
+              reference video from Vivekam
+            </a>{' '}
+            discusses an expected market price with profit-sensitive and profit-insensitive
+            components. It describes part of that method as proprietary intellectual property.
           </p>
-        </div>
-
-        {/* Step 4: The 95% Confidence Corridor */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-300 font-bold font-mono flex items-center justify-center text-sm">
-              04
-            </span>
-            <span className="text-xs font-mono text-rose-400">Step 4: Corridor Bands</span>
-          </div>
-          <h3 className="text-lg font-bold text-slate-100">EMP High &amp; EMP Low Boundaries</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Setting k = 1.96 captures 95.44% of normal probability distribution:
+          <p>
+            This app implements the reproducible historical P/E model in the repository. It cannot
+            claim to reproduce the proprietary EMP algorithm, its coefficients, or its stated
+            performance.
           </p>
-          <div className="p-3 bg-slate-950 rounded-xl font-mono text-xs text-slate-200 border border-slate-800 space-y-1">
-            <div className="text-rose-400">EMP High = TTM EPS &times; (&mu; + 1.96&middot;&sigma;) &rarr; Sell/Switch</div>
-            <div className="text-emerald-400">EMP Low = TTM EPS &times; (&mu; - 1.96&middot;&sigma;) &rarr; Strong Buy</div>
-          </div>
-          <p className="text-[11px] text-slate-400">
-            • When CMP &le; EMP Low, statistical reversion probability towards central EMP is ~95%+.
+        </section>
+        <section>
+          <h2>Use comparable financial inputs</h2>
+          <ul>
+            <li>
+              Use a consistent reporting basis, such as consolidated earnings attributable to
+              ordinary shareholders.
+            </li>
+            <li>
+              Record the financial period. Do not combine current prices with obsolete or
+              split-unadjusted earnings without reviewing them.
+            </li>
+            <li>
+              Use weighted-average shares for the relevant period. If shares changed, prefer
+              reported comparable EPS over the raw profit shortcut.
+            </li>
+            <li>
+              Use historical P/E observations from a consistent period and sampling frequency.
+              Today’s P/E is not a historical mean.
+            </li>
+            <li>
+              Negative or zero TTM earnings make this P/E method unavailable. Zero P/E dispersion is
+              valid, but produces no z-score.
+            </li>
+          </ul>
+          <a
+            href="https://www.ifrs.org/issued-standards/list-of-standards/ias-33-earnings-per-share.html/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            IAS 33: earnings per share and weighted-average shares
+          </a>
+        </section>
+        <section>
+          <h2>Know where the data came from</h2>
+          <p>
+            <strong>Example data:</strong> the bundled stock values and historical observations have
+            no verifiable source dates. They are labeled examples throughout the app.
           </p>
-        </div>
-      </div>
-
-      {/* Decision Rules Matrix */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5">
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-          <Binary className="w-5 h-5 text-indigo-400" />
-          <span>Statistical Multiple Mean-Reversion Decision Engine</span>
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/50 space-y-2">
-            <div className="font-bold text-emerald-400 uppercase font-mono">Zone 1: Deep Value</div>
-            <div className="font-mono text-slate-200">CMP &le; EMP Low</div>
-            <p className="text-slate-400">
-              Multiple Z-Score &le; -1.96&sigma;. Margin of safety is maximized. Mathematical Strong Buy / Accumulate.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-teal-950/40 border border-teal-800/50 space-y-2">
-            <div className="font-bold text-teal-300 uppercase font-mono">Zone 2: Underpriced</div>
-            <div className="font-mono text-slate-200">EMP Low &lt; CMP &lt; EMP</div>
-            <p className="text-slate-400">
-              Z-Score between -1.96&sigma; and 0. Risk-to-reward ratio is favorable. Accumulate.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/50 space-y-2">
-            <div className="font-bold text-amber-300 uppercase font-mono">Zone 3: Fair Value</div>
-            <div className="font-mono text-slate-200">EMP &le; CMP &lt; EMP High</div>
-            <p className="text-slate-400">
-              Z-Score between 0 and +1.96&sigma;. Stock trades within fair envelope. Hold existing positions.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800/50 space-y-2">
-            <div className="font-bold text-rose-400 uppercase font-mono">Zone 4: Overpriced</div>
-            <div className="font-mono text-slate-200">CMP &ge; EMP High</div>
-            <p className="text-slate-400">
-              Z-Score &ge; +1.96&sigma;. Asymmetric downside risk. Sell, take profits, or switch into Zone 1 equities.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Free Data Sources Reference */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-4">
-        <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-          <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-          <span>Where to Get Free Data Inputs</span>
-        </h3>
-        <p className="text-xs text-slate-300 leading-relaxed">
-          100% free and open public market disclosures. All metrics are calculated deterministically using data from these free platforms:
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-            <div className="font-bold text-slate-100 font-sans">Screener.in</div>
-            <div className="text-slate-400 text-[11px]">Free Fundamental Data:</div>
-            <div className="text-emerald-400">&bull; EPS (TTM)</div>
-            <div className="text-emerald-400">&bull; 3Y &amp; 5Y Median P/E</div>
-            <div className="text-emerald-400">&bull; Last 4 Quarters Net Profit</div>
-          </div>
-
-          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-            <div className="font-bold text-slate-100 font-sans">Trendlyne</div>
-            <div className="text-slate-400 text-[11px]">Free Valuation Envelopes:</div>
-            <div className="text-indigo-400">&bull; 10th &amp; 90th P/E percentiles</div>
-            <div className="text-indigo-400">&bull; P/E standard deviation</div>
-          </div>
-
-          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-            <div className="font-bold text-slate-100 font-sans">NSE India</div>
-            <div className="text-slate-400 text-[11px]">Official Primary Source:</div>
-            <div className="text-amber-400">&bull; Audited Quarterly Disclosures</div>
-            <div className="text-amber-400">&bull; Adjusted Daily Closing CMP</div>
-          </div>
-        </div>
-      </div>
-    </div>
+          <p>
+            <strong>User inputs:</strong> imported or edited models store your source link and
+            financial period when supplied. They are not automatically verified by the app.
+          </p>
+          <p>
+            <strong>Provider quotes:</strong> Yahoo Finance supplies optional NSE/BSE quotes and
+            their market timestamps. They may be delayed. Failed or old quotes are shown as stale or
+            unavailable and cannot silently replace model inputs.
+          </p>
+          <p>
+            Automatic financial-statement ingestion is not configured. For a production financial
+            feed, connect a licensed provider that supplies attributable earnings, share
+            adjustments, financial periods, and a matching historical P/E series.
+          </p>
+        </section>
+        <section>
+          <h2>Read percentages correctly</h2>
+          <p>
+            “Price vs. model” uses model value as the denominator. A ₹80 price against a ₹100 model
+            is −20%. “Move to model” uses current price as the denominator: the same example needs a
+            +25% price change to reach ₹100.
+          </p>
+          <p>
+            Scenario growth compounds EPS over future quarters while leaving P/E assumptions
+            unchanged. It is hypothetical and does not project a traded share price.
+          </p>
+        </section>
+      </article>
+    </>
   );
-};
+}

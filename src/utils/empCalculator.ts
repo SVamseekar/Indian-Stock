@@ -1,216 +1,158 @@
-import { EmpCalculationResult, ValuationStatus } from '../types/stock';
+import type { EmpCalculationResult, ValuationStatus } from '../types/stock';
 
-/**
- * Standard Normal Cumulative Distribution Function approximation (Abramowitz & Stegun)
- */
+function finite(value: number, name: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value))
+    throw new Error(`${name} must be a finite number.`);
+  return value;
+}
+function positive(value: number, name: string): number {
+  finite(value, name);
+  if (value <= 0) throw new Error(`${name} must be greater than zero.`);
+  return value;
+}
 function standardNormalCdf(z: number): number {
-  const a1 = 0.254829592;
-  const a2 = -0.284496736;
-  const a3 = 1.421413741;
-  const a4 = -1.453152027;
-  const a5 = 1.061405429;
-  const p = 0.3275911;
-
+  if (z === 0) return 0.5;
   const sign = z < 0 ? -1 : 1;
-  const absZ = Math.abs(z) / Math.SQRT2;
-  const t = 1.0 / (1.0 + p * absZ);
-  const y = 1.0 - (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t) * Math.exp(-absZ * absZ);
-
-  return 0.5 * (1.0 + sign * y);
+  const x = Math.abs(z) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * x);
+  const erf =
+    1 -
+    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
+      t *
+      Math.exp(-x * x);
+  return 0.5 * (1 + sign * erf);
 }
-
-/**
- * Computes arithmetic mean of an array of numbers
- */
 export function calculateMean(values: number[]): number {
-  if (!values || values.length === 0) return 0;
-  const sum = values.reduce((a, b) => a + b, 0);
-  return Number((sum / values.length).toFixed(2));
+  if (!values.length) throw new Error('Enter at least one observation.');
+  values.forEach((v) => finite(v, 'Observation'));
+  return finite(values.reduce((total, v) => total + v, 0) / values.length, 'Mean');
 }
-
-/**
- * Computes sample standard deviation (Bessel's correction n-1)
- */
 export function calculateSampleStdDev(values: number[]): number {
-  if (!values || values.length < 2) return 0;
+  if (values.length < 2)
+    throw new Error('Enter at least two observations to estimate standard deviation.');
   const mean = calculateMean(values);
-  const variance = values.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (values.length - 1);
-  return Number(Math.sqrt(variance).toFixed(2));
+  return finite(
+    Math.sqrt(values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1)),
+    'Standard deviation',
+  );
 }
 
-/**
- * Calculates Statistical P/E Multiple Mean-Reversion Corridor and Equilibrium Fair Value Bands
- * 
- * Exact Mathematical Formulations:
- * 1. Current Multiple: P/E_current = CMP / TTM_EPS
- * 2. Equilibrium Fair Value: P_fair = TTM_EPS * PE_mean
- * 3. Upper Resistance Band: P_upper = TTM_EPS * (PE_mean + k * sigma)
- * 4. Lower Support Band: P_lower = TTM_EPS * (PE_mean - k * sigma)
- * 5. Z-Score: Z = (P/E_current - PE_mean) / sigma
- * 6. Historical Mean-Reversion Probability: Derived from standard normal CDF
- */
+/** A historical P/E scenario model. No claim of forecast probability or proprietary EMP replication. */
 export function calculateEmpBands(
   cmp: number,
   ttmEps: number,
   peFair: number,
   peStdDev: number,
-  confidenceMultiplier: number = 1.96
+  confidenceMultiplier = 1.96,
 ): EmpCalculationResult {
-  const validCmp = Math.max(0.1, Number(cmp) || 1);
-  const validEps = Number(ttmEps) || 1;
-  const validPe = Math.max(1, Number(peFair) || 15);
-  const validStdDev = Math.max(0.1, Number(peStdDev) || 2.5);
-  const validK = Math.max(0.5, Number(confidenceMultiplier) || 1.96);
-
-  // 1. Central Equilibrium Price
-  const emp = Number((validEps * validPe).toFixed(2));
-
-  // 2. Upper and Lower Corridor Bands
-  const peUpper = validPe + validK * validStdDev;
-  const peLower = Math.max(0.5, validPe - validK * validStdDev);
-
-  const empHigh = Number((validEps * peUpper).toFixed(2));
-  const empLow = Number((validEps * peLower).toFixed(2));
-
-  // 3. Current Valuation Multiples
-  const currentPe = Number((validCmp / validEps).toFixed(2));
-  const zScore = Number(((currentPe - validPe) / validStdDev).toFixed(2));
-
-  // 4. Coefficient of Variation (Valuation dispersion)
-  const peDispersionPercent = Number(((validStdDev / validPe) * 100).toFixed(1));
-
-  // 5. Statistical Reversion Probability
-  // When stock is at EMP Low (Z <= -1.96), cumulative probability is ~2.5%, implying a 97.5% chance of reversion upward.
-  let estimatedMeanReversionProbability: number;
-  if (zScore <= 0) {
-    // Underpriced: probability of moving up towards EMP
-    estimatedMeanReversionProbability = Number(((1 - standardNormalCdf(zScore)) * 100).toFixed(1));
-  } else {
-    // Overpriced: probability of mean-reverting down to EMP
-    estimatedMeanReversionProbability = Number((standardNormalCdf(zScore) * 100).toFixed(1));
-  }
-
-  // 6. Classification
-  let status: ValuationStatus;
-  let statusLabel: string;
-  let statusColor: string;
-
-  if (validCmp <= empLow) {
-    status = 'DEEPLY_UNDERPRICED';
-    statusLabel = 'Strong Buy / Deep Value (High Margin of Safety)';
-    statusColor = 'emerald';
-  } else if (validCmp < emp) {
-    status = 'UNDERPRICED';
-    statusLabel = 'Underpriced / Accumulate';
-    statusColor = 'teal';
-  } else if (validCmp < empHigh) {
-    status = 'FAIR_VALUE';
-    statusLabel = 'Fair Value / Hold / Monitor';
-    statusColor = 'amber';
-  } else {
-    status = 'OVERPRICED';
-    statusLabel = 'Overpriced / Sell or Switch';
-    statusColor = 'rose';
-  }
-
-  // 7. Percentage Differentials
-  const discountToEmp = Number((((validCmp - emp) / emp) * 100).toFixed(2));
-  const discountToEmpLow = Number((((validCmp - empLow) / empLow) * 100).toFixed(2));
-
-  // 8. Upside / Downside
-  const targetUpsideToEmp = Number((((emp - validCmp) / validCmp) * 100).toFixed(2));
-  const maxUpsideToEmpHigh = Number((((empHigh - validCmp) / validCmp) * 100).toFixed(2));
-  const downsideRiskToEmpLow = validCmp > empLow
-    ? Number((((validCmp - empLow) / validCmp) * 100).toFixed(2))
-    : 0;
-
-  // 9. Risk-Reward Ratio
-  const riskRewardRatio = downsideRiskToEmpLow > 0
-    ? Number((Math.max(0, targetUpsideToEmp) / downsideRiskToEmpLow).toFixed(2))
-    : targetUpsideToEmp > 0 ? 99 : 0;
-
-  // 10. Margin of Safety
-  const marginOfSafetyPercent = Number((((emp - validCmp) / emp) * 100).toFixed(2));
-
-  // 11. Historical Theoretical Hit Rate
-  let historicalHitRate = 95.4;
-  if (validK <= 1.0) historicalHitRate = 68.2;
-  else if (validK <= 1.65) historicalHitRate = 90.0;
-  else if (validK <= 2.0) historicalHitRate = 95.4;
-  else historicalHitRate = 98.8;
-
-  return {
-    cmp: validCmp,
-    ttmEps: validEps,
-    peFair: validPe,
-    peStdDev: validStdDev,
-    confidenceMultiplier: validK,
-    emp,
-    empHigh,
-    empLow,
-    status,
-    statusLabel,
-    statusColor,
-    discountToEmp,
-    discountToEmpLow,
-    targetUpsideToEmp,
-    maxUpsideToEmpHigh,
-    downsideRiskToEmpLow,
-    riskRewardRatio,
-    marginOfSafetyPercent,
-    historicalHitRate,
-    zScore,
-    currentPe,
-    peDispersionPercent,
-    estimatedMeanReversionProbability,
+  positive(cmp, 'Market price');
+  positive(ttmEps, 'TTM EPS (P/E valuation is unavailable for losses or zero earnings)');
+  positive(peFair, 'Mean P/E');
+  finite(peStdDev, 'P/E standard deviation');
+  if (peStdDev < 0) throw new Error('P/E standard deviation cannot be negative.');
+  positive(confidenceMultiplier, 'Band multiplier');
+  const emp = finite(ttmEps * peFair, 'Model value');
+  const rawLow = peFair - confidenceMultiplier * peStdDev;
+  const empLow = finite(ttmEps * Math.max(0, rawLow), 'Lower band');
+  const empHigh = finite(ttmEps * (peFair + confidenceMultiplier * peStdDev), 'Upper band');
+  const currentPe = finite(cmp / ttmEps, 'Current P/E');
+  const zScore = peStdDev === 0 ? null : finite((currentPe - peFair) / peStdDev, 'Z-score');
+  const status: ValuationStatus =
+    cmp === emp
+      ? 'FAIR_VALUE'
+      : cmp < empLow
+        ? 'DEEPLY_UNDERPRICED'
+        : cmp < emp
+          ? 'UNDERPRICED'
+          : cmp <= empHigh
+            ? 'FAIR_VALUE'
+            : 'OVERPRICED';
+  const labels = {
+    DEEPLY_UNDERPRICED: ['Below the lower band', 'teal'],
+    UNDERPRICED: ['Below the model value', 'teal'],
+    FAIR_VALUE: ['Within the model range', 'blue'],
+    OVERPRICED: ['Above the upper band', 'rose'],
   };
+  const targetUpsideToEmp = finite((emp / cmp - 1) * 100, 'Difference to model');
+  const downsideRiskToEmpLow = finite(
+    Math.max(0, (1 - empLow / cmp) * 100),
+    'Distance to lower band',
+  );
+  const result: EmpCalculationResult = {
+    cmp,
+    ttmEps,
+    peFair,
+    peStdDev,
+    confidenceMultiplier,
+    emp,
+    empLow,
+    empHigh,
+    lowerBandClamped: rawLow < 0,
+    status,
+    statusLabel: labels[status][0],
+    statusColor: labels[status][1],
+    discountToEmp: (cmp / emp - 1) * 100,
+    discountToEmpLow: empLow === 0 ? null : (cmp / empLow - 1) * 100,
+    targetUpsideToEmp,
+    maxUpsideToEmpHigh: (empHigh / cmp - 1) * 100,
+    downsideRiskToEmpLow,
+    riskRewardRatio:
+      downsideRiskToEmpLow > 0 ? Math.max(0, targetUpsideToEmp) / downsideRiskToEmpLow : null,
+    marginOfSafetyPercent: (1 - cmp / emp) * 100,
+    theoreticalNormalCoverage: (2 * standardNormalCdf(confidenceMultiplier) - 1) * 100,
+    currentPe,
+    zScore,
+    peDispersionPercent: (peStdDev / peFair) * 100,
+    normalPercentile: zScore === null ? null : standardNormalCdf(zScore) * 100,
+  };
+  Object.values(result).forEach((v) => {
+    if (typeof v === 'number') finite(v, 'Calculated result');
+  });
+  return result;
 }
-
-/**
- * Calculates TTM EPS from 4 quarters of Net Profit (₹ Cr) and Number of Shares (Cr)
- */
+export function tryCalculateEmpBands(cmp: number, eps: number, pe: number, sd: number, k = 1.96) {
+  try {
+    return { result: calculateEmpBands(cmp, eps, pe, sd, k), error: '' };
+  } catch (e) {
+    return { result: null, error: e instanceof Error ? e.message : 'Check the valuation inputs.' };
+  }
+}
+/** Only valid with attributable earnings and consistent weighted-average shares across the four quarters. */
 export function calculateTtmEpsFromQuarters(
-  q1ProfitCr: number,
-  q2ProfitCr: number,
-  q3ProfitCr: number,
-  q4ProfitCr: number,
-  sharesCountCr: number
-): { ttmProfitCr: number; ttmEps: number } {
-  const ttmProfitCr = q1ProfitCr + q2ProfitCr + q3ProfitCr + q4ProfitCr;
-  const ttmEps = sharesCountCr > 0 ? Number((ttmProfitCr / sharesCountCr).toFixed(2)) : 0;
-  return { ttmProfitCr: Number(ttmProfitCr.toFixed(2)), ttmEps };
+  q1: number,
+  q2: number,
+  q3: number,
+  q4: number,
+  sharesCountCr: number,
+) {
+  [q1, q2, q3, q4].forEach((v) => finite(v, 'Quarterly profit'));
+  positive(sharesCountCr, 'Weighted-average shares');
+  const ttmProfitCr = finite(q1 + q2 + q3 + q4, 'TTM profit');
+  return { ttmProfitCr, ttmEps: finite(ttmProfitCr / sharesCountCr, 'TTM EPS') };
 }
-
-/**
- * Generates forward quarterly projections
- */
 export function projectForwardQuarters(
-  currentQuarterName: string,
+  _currentQuarterName: string,
   ttmEps: number,
   peFair: number,
   peStdDev: number,
-  annualGrowthPercent: number = 15,
-  confidenceMultiplier: number = 1.96,
-  quartersAhead: number = 4
+  annualGrowthPercent = 15,
+  confidenceMultiplier = 1.96,
+  quartersAhead = 4,
 ) {
-  const quarterlyGrowthRate = Math.pow(1 + annualGrowthPercent / 100, 1 / 4) - 1;
-  const projections = [];
-
-  let nextEps = ttmEps;
-  for (let i = 1; i <= quartersAhead; i++) {
-    nextEps = Number((nextEps * (1 + quarterlyGrowthRate)).toFixed(2));
-    const emp = Number((nextEps * peFair).toFixed(2));
-    const empHigh = Number((nextEps * (peFair + confidenceMultiplier * peStdDev)).toFixed(2));
-    const empLow = Number((nextEps * (peFair - confidenceMultiplier * peStdDev)).toFixed(2));
-
-    projections.push({
-      quarter: `+Q${i} Forward`,
-      ttmEps: nextEps,
-      emp,
-      empHigh,
-      empLow,
-    });
-  }
-
-  return projections;
+  finite(annualGrowthPercent, 'Scenario growth');
+  if (annualGrowthPercent <= -100) throw new Error('Scenario growth must exceed -100%.');
+  if (!Number.isInteger(quartersAhead) || quartersAhead < 1 || quartersAhead > 40)
+    throw new Error('Choose between 1 and 40 quarters.');
+  calculateEmpBands(1, ttmEps, peFair, peStdDev, confidenceMultiplier);
+  return Array.from({ length: quartersAhead }, (_, i) => {
+    const eps = ttmEps * (1 + annualGrowthPercent / 100) ** ((i + 1) / 4);
+    const r = calculateEmpBands(1, eps, peFair, peStdDev, confidenceMultiplier);
+    return {
+      quarter: `+Q${i + 1} scenario`,
+      ttmEps: eps,
+      emp: r.emp,
+      empLow: r.empLow,
+      empHigh: r.empHigh,
+    };
+  });
 }
